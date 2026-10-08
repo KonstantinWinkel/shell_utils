@@ -9,7 +9,7 @@ clean_python_cache() {
 
     count=$(find "$1" -type d -name "__pycache__" | wc -l)
 
-    if ["$count" -eq 0]; then
+    if [ "$count" -eq 0 ]; then
         log_info "No __pycache__ folders found."
     else
         log_info "Found $count __pycache__ folder(s). Deleting..."
