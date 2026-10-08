@@ -13,6 +13,8 @@ fi
 
 # shellcheck source=lib/common.sh
 source "$SHELL_UTILS_DIR/lib/common.sh"
+# shellcheck source=lib/cleaning.sh
+source "$SHELL_UTILS_DIR/lib/cleaning.sh"
 # shellcheck source=lib/logging.sh
 source "$SHELL_UTILS_DIR/lib/logging.sh"
 # shellcheck source=lib/packages.sh
