@@ -79,12 +79,26 @@ install_apt_packages() {
 
     log_info "Updating APT package metadata."
     if [ -n "$privilege" ]; then
-        "$privilege" apt-get update
+        if ! "$privilege" apt-get update; then
+            log_error "Failed to update APT package metadata."
+            return 1
+        fi
         log_info "Installing APT package(s): $*"
-        "$privilege" apt-get install -y -- "$@"
+        if ! "$privilege" apt-get install -y -- "$@"; then
+            log_error "Failed to install APT package(s): $*"
+            return 1
+        fi
     else
-        apt-get update
+        if ! apt-get update; then
+            log_error "Failed to update APT package metadata."
+            return 1
+        fi
         log_info "Installing APT package(s): $*"
-        apt-get install -y -- "$@"
+        if ! apt-get install -y -- "$@"; then
+            log_error "Failed to install APT package(s): $*"
+            return 1
+        fi
     fi
+
+    log_info "APT package installation complete."
 }

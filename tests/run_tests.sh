@@ -42,10 +42,14 @@ if command -v dpkg-query >/dev/null 2>&1; then
 fi
 
 repo="$(mktemp -d)"
-trap 'rm -rf "$repo"' EXIT
+cleanup_root="$(mktemp -d "$PROJECT_DIR/../shell-utils-cleaning-test.XXXXXX")"
+trap 'rm -rf "$repo" "$cleanup_root"' EXIT
 git -C "$repo" init -q
 assert_success "Git repository recognition" _git_require_repository "$repo"
 assert_failure "unknown submodule rejected" init_git_submodule "$repo" missing/submodule
-
+mkdir -p "$cleanup_root/allowed/__pycache__"
+assert_success "cleanup accepts a descendant of the shell_utils parent" clean_python_cache "$cleanup_root"
+assert_success "cleanup removes Python cache directories" test ! -d "$cleanup_root/allowed/__pycache__"
+assert_failure "cleanup rejects the parent of the allowed tree" clean_python_cache "$PROJECT_DIR/../.."
 printf '\nTests: %d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]

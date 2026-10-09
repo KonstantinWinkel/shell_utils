@@ -18,6 +18,18 @@ update_git_repository() {
     local repository="${1:-.}" remote="${2:-origin}" branch="${3:-}"
     _git_require_repository "$repository" || return
 
+    case "$remote" in
+        -*) log_error "Git remote must not begin with '-': $remote"; return 2 ;;
+    esac
+    case "$branch" in
+        -*) log_error "Git branch must not begin with '-': $branch"; return 2 ;;
+    esac
+
+    if ! git -C "$repository" remote get-url -- "$remote" >/dev/null 2>&1; then
+        log_error "Unknown Git remote: $remote"
+        return 2
+    fi
+
     if [ -n "$(git -C "$repository" status --porcelain)" ]; then
         log_warn "Repository has uncommitted changes: $repository"
     fi
@@ -27,10 +39,18 @@ update_git_repository() {
     fi
     [ -n "$branch" ] || { log_error "Cannot update a detached HEAD without an explicit branch."; return 1; }
 
+    case "$branch" in
+        -*) log_error "Git branch must not begin with '-': $branch"; return 2 ;;
+    esac
+    if ! git check-ref-format --branch "$branch" >/dev/null 2>&1; then
+        log_error "Invalid Git branch name: $branch"
+        return 2
+    fi
+
     log_info "Fetching $remote for repository: $repository"
-    git -C "$repository" fetch --prune "$remote"
+    git -C "$repository" fetch --prune -- "$remote" || return
     log_info "Rebasing $branch onto $remote/$branch"
-    git -C "$repository" pull --rebase "$remote" "$branch"
+    git -C "$repository" pull --rebase -- "$remote" "$branch"
 }
 
 update_git_repositories() {
