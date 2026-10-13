@@ -32,6 +32,9 @@ _shell_utils_log() {
     local level="$1" colour="$2" message="$3" reset='' prefix=''
     _shell_utils_should_log "$level" || return 0
 
+    # Keep each log event on one line and prevent terminal control-sequence injection.
+    message="${message//[$'\001'-$'\037'$'\177']/ }"
+
     if _shell_utils_colour_enabled; then
         prefix="${colour}"
         reset='\033[0m'

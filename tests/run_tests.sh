@@ -31,6 +31,19 @@ capture_logs() {
 }
 
 assert_success "timestamped logging" capture_logs
+
+sanitized_log_message() {
+    local output message
+    message=$'first line\nforged line\rhidden\033[2J'
+    output="$(NO_COLOR=1 SHELL_UTILS_LOG_LEVEL=DEBUG log_info "$message" 2>&1)"
+    [ "$(printf '%s\n' "$output" | wc -l)" -eq 1 ] || return 1
+    case "$output" in
+        *$'\n'*|*$'\r'*|*$'\033'*) return 1 ;;
+    esac
+    [[ "$output" == *"first line forged line hidden [2J" ]]
+}
+
+assert_success "log messages sanitize control characters" sanitized_log_message
 assert_success "command detection" shell_utils_command_exists bash
 assert_failure "missing command detection" shell_utils_command_exists shell-utils-command-that-does-not-exist
 assert_success "installed Python package detection" python_package_installed pip
