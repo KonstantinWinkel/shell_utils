@@ -31,7 +31,7 @@ clean_python_cache() {
             ;;
     esac
     log_info "Cleaning __pycache__ folders starting from $root"
-    count="$(find "$root" -type d -name "__pycache__" -print 2>/dev/null | wc -l)" || {
+    count="$(find "$root" -xdev -type d -name "__pycache__" -print 2>/dev/null | wc -l)" || {
         log_error "Failed to search for __pycache__ folders under: $root"
         return 1
     }
@@ -40,9 +40,16 @@ clean_python_cache() {
         return 0
     fi
     log_info "Found $count __pycache__ folder(s). Deleting..."
-    if ! find "$root" -type d -name "__pycache__" -exec rm -rf -- {} +; then
-        log_error "Cleanup of __pycache__ failed."
-        return 1
-    fi
+    while IFS= read -r -d '' dir; do
+        [ -d "$dir" ] || continue
+
+        case "$(basename -- "$dir")" in
+            "__pycache__")
+                rm -rf -- "$dir"
+                ;;
+        esac
+    done < <(
+        find "$root" -xdev -type d -name "__pycache__" -print0
+    )
     log_info "Cleanup of __pycache__ complete."
 }
