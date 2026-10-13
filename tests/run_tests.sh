@@ -66,6 +66,13 @@ cleanup_root="$(mktemp -d "$PROJECT_DIR/../shell-utils-cleaning-test.XXXXXX")"
 trap 'rm -rf "$repo" "$cleanup_root"' EXIT
 git -C "$repo" init -q
 assert_success "Git repository recognition" _git_require_repository "$repo"
+git -C "$repo" remote add safe-https https://example.invalid/repository.git
+git -C "$repo" remote add unsafe-ext "ext::sh -c 'exit 0'"
+git -C "$repo" remote add local-file file:///tmp/repository.git
+assert_success "HTTPS Git remote accepted" _git_validate_remote_url "$repo" safe-https
+assert_failure "ext Git remote rejected" _git_validate_remote_url "$repo" unsafe-ext
+assert_failure "file Git remote rejected in strict mode" env SHELL_UTILS_GIT_STRICT=1 bash -c     'source "$1/shell-utils.sh"; _git_validate_remote_url "$2" local-file' _ "$PROJECT_DIR" "$repo"
+assert_failure "repository update validates remote before fetching" update_git_repository "$repo" unsafe-ext main
 assert_failure "unknown submodule rejected" init_git_submodule "$repo" missing/submodule
 cat > "$repo/.gitmodules" <<'SUBMODULES'
 [submodule "module with spaces"]

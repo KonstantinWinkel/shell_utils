@@ -14,6 +14,53 @@ _git_require_repository() {
     }
 }
 
+_git_validate_remote_url() {
+    local repository="$1" remote="$2" url
+    url="$(git -C "$repository" remote get-url -- "$remote" 2>/dev/null)" || return 1
+    case "$url" in
+        http://*|https://*|git://*|git@*|ssh://*)
+            ;;
+        ext::*)
+            log_error "Remote with ext:: protocol rejected: $remote"
+            return 1
+            ;;
+        file://*)
+            if [ "${SHELL_UTILS_GIT_STRICT:-0}" = "1" ]; then
+                log_error "Remote with file:// protocol rejected in strict mode: $remote"
+                return 1
+            fi
+            log_warn "Remote with file:// protocol detected: $remote"
+            if [ -t 0 ]; then
+                read -r -p "Continue? [y/N] " response
+                case "$response" in
+                    [Yy]|[Yy][Ee][Ss]) ;;
+                    *) return 2 ;;
+                esac
+            else
+                log_error "Remote with file:// protocol rejected on non-interactive terminals: $remote"
+                return 1
+            fi
+            ;;
+        *)
+            if [ "${SHELL_UTILS_GIT_STRICT:-0}" = "1" ]; then
+                log_error "Remote with unknown protocol rejected in strict mode: $remote"
+                return 1
+            fi
+            log_warn "Remote with unknown protocol detected: $remote"
+            if [ -t 0 ]; then
+                read -r -p "Continue? [y/N] " response
+                case "$response" in
+                    [Yy]|[Yy][Ee][Ss]) ;;
+                    *) return 2 ;;
+                esac
+            else
+                log_error "Remote with unknown protocol rejected on non-interactive terminals: $remote"
+                return 1
+            fi
+            ;;
+    esac
+}
+
 update_git_repository() {
     local repository="${1:-.}" remote="${2:-origin}" branch="${3:-}"
     _git_require_repository "$repository" || return
@@ -29,6 +76,8 @@ update_git_repository() {
         log_error "Unknown Git remote: $remote"
         return 2
     fi
+
+    _git_validate_remote_url "$repository" "$remote" || return
 
     if [ -n "$(git -C "$repository" status --porcelain)" ]; then
         log_warn "Repository has uncommitted changes: $repository"
