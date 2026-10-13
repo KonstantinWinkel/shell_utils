@@ -35,10 +35,12 @@ assert_success "command detection" shell_utils_command_exists bash
 assert_failure "missing command detection" shell_utils_command_exists shell-utils-command-that-does-not-exist
 assert_success "installed Python package detection" python_package_installed pip
 assert_failure "missing Python package detection" python_package_installed shell-utils-package-that-does-not-exist
+assert_failure "invalid Python package option" python_package_installed --help
 
 if command -v dpkg-query >/dev/null 2>&1; then
     assert_success "installed APT package detection" apt_package_installed bash
     assert_failure "missing APT package detection" apt_package_installed shell-utils-package-that-does-not-exist
+    assert_failure "invalid APT package option" apt_package_installed --help
 fi
 
 repo="$(mktemp -d)"

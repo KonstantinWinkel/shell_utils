@@ -20,9 +20,10 @@ shell_utils_python_command() {
 
 python_package_installed() {
     [ "$#" -eq 1 ] || { log_error "Usage: python_package_installed PACKAGE"; return 2; }
+    [ "${1#-}" = "$1" ] || { log_error "Invalid package name: $1"; return 2; }
     local python_cmd
     python_cmd="$(shell_utils_python_command)" || { log_error "Python was not found."; return 2; }
-    "$python_cmd" -m pip show "$1" >/dev/null 2>&1
+    "$python_cmd" -m pip show -- "$1" >/dev/null 2>&1
 }
 
 check_python_packages() {
@@ -49,8 +50,9 @@ install_python_packages() {
 
 apt_package_installed() {
     [ "$#" -eq 1 ] || { log_error "Usage: apt_package_installed PACKAGE"; return 2; }
+    [ "${1#-}" = "$1" ] || { log_error "Invalid package name: $1"; return 2; }
     shell_utils_command_exists dpkg-query || { log_error "dpkg-query was not found; this system may not be Debian-based."; return 2; }
-    [ "$(dpkg-query -W -f='${Status}' "$1" 2>/dev/null || true)" = "install ok installed" ]
+    [ "$(dpkg-query -W -f='${Status}' -- "$1" 2>/dev/null || true)" = "install ok installed" ]
 }
 
 check_apt_packages() {
