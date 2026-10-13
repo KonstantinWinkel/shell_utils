@@ -62,23 +62,34 @@ update_git_repositories() {
     return "$failed"
 }
 
+_git_list_submodule_paths() {
+    local repository="$1" record
+    while IFS= read -r -d '' record; do
+        printf '%s\n' "${record#*$'\n'}"
+    done < <(
+        git -C "$repository" config --null --file .gitmodules \
+            --get-regexp '^submodule\..*\.path$' 2>/dev/null
+    )
+}
+
 init_git_submodule() {
-    local repository="${1:-.}" submodule_path="${2:-}"
+    local repository="${1:-.}" submodule_path="${2:-}" known_path
     [ -n "$submodule_path" ] || { log_error "Usage: init_git_submodule REPOSITORY SUBMODULE_PATH"; return 2; }
     _git_require_repository "$repository" || return
-
-    if ! git -C "$repository" config --file .gitmodules --get-regexp path 2>/dev/null | awk '{print $2}' | grep -Fxq -- "$submodule_path"; then
-        log_error "Unknown submodule path: $submodule_path"
-        return 1
-    fi
-
-    log_info "Initialising submodule: $submodule_path"
-    git -C "$repository" submodule update --init --recursive -- "$submodule_path"
+    while IFS= read -r known_path; do
+        if [ "$known_path" = "$submodule_path" ]; then
+            log_info "Initialising submodule: $submodule_path"
+            git -C "$repository" submodule update --init --recursive -- "$submodule_path"
+            return $?
+        fi
+    done < <(_git_list_submodule_paths "$repository")
+    log_error "Unknown submodule path: $submodule_path"
+    return 1
 }
 
 list_git_submodules() {
     local repository="${1:-.}"
     _git_require_repository "$repository" || return
     [ -f "$repository/.gitmodules" ] || return 0
-    git -C "$repository" config --file .gitmodules --get-regexp path 2>/dev/null | awk '{print $2}'
+    _git_list_submodule_paths "$repository"
 }

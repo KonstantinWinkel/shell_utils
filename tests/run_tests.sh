@@ -29,7 +29,11 @@ capture_logs() {
     output="$(NO_COLOR=1 SHELL_UTILS_LOG_LEVEL=DEBUG log_info 'test message' 2>&1)"
     [[ "$output" =~ ^\[[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}\]\ \[INFO\]\ test\ message$ ]]
 }
-
+submodule_path_listed() {
+    local repository="$1" expected="$2" output
+    output="$(list_git_submodules "$repository")" || return
+    [ "$output" = "$expected" ]
+}
 assert_success "timestamped logging" capture_logs
 
 sanitized_log_message() {
@@ -63,6 +67,13 @@ trap 'rm -rf "$repo" "$cleanup_root"' EXIT
 git -C "$repo" init -q
 assert_success "Git repository recognition" _git_require_repository "$repo"
 assert_failure "unknown submodule rejected" init_git_submodule "$repo" missing/submodule
+cat > "$repo/.gitmodules" <<'SUBMODULES'
+[submodule "module with spaces"]
+    path = vendor/module with spaces
+    url = https://example.invalid/module.git
+SUBMODULES
+assert_success "submodule path with spaces is listed unchanged" \
+    submodule_path_listed "$repo" "vendor/module with spaces"
 mkdir -p "$cleanup_root/allowed/__pycache__"
 assert_success "cleanup accepts a descendant of the shell_utils parent" clean_python_cache "$cleanup_root"
 assert_success "cleanup removes Python cache directories" test ! -d "$cleanup_root/allowed/__pycache__"
