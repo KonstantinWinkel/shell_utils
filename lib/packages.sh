@@ -8,7 +8,12 @@
 
 shell_utils_python_command() {
     if [ -n "${SHELL_UTILS_PYTHON:-}" ]; then
-        printf '%s\n' "$SHELL_UTILS_PYTHON"
+        # Validate the path is an executable file
+        if [ -x "$SHELL_UTILS_PYTHON" ] && [ -f "$SHELL_UTILS_PYTHON" ]; then
+            printf '%s\n' "$SHELL_UTILS_PYTHON"
+        else
+            log_error "SHELL_UTILS_PYTHON is set but not an executable file: $SHELL_UTILS_PYTHON"
+        fi
     elif shell_utils_command_exists python3; then
         printf '%s\n' python3
     elif shell_utils_command_exists python; then
