@@ -36,6 +36,7 @@ assert_failure "missing command detection" shell_utils_command_exists shell-util
 assert_success "installed Python package detection" python_package_installed pip
 assert_failure "missing Python package detection" python_package_installed shell-utils-package-that-does-not-exist
 assert_failure "invalid Python package option" python_package_installed --help
+assert_failure "option-like argument for strict python Package installation" install_python_packages_strict -r requirements.txt
 
 if command -v dpkg-query >/dev/null 2>&1; then
     assert_success "installed APT package detection" apt_package_installed bash

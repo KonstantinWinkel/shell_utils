@@ -40,12 +40,28 @@ check_python_packages() {
     return "$missing"
 }
 
+
+# SECURITY NOTE: This functions argument are passed to "pip install" without validation. Do not pass
+#                untrusted user input to this function without sanatization, as pip options could be
+#                injected (like installation from arbitrary sources using -e git+hattps://...).
 install_python_packages() {
     [ "$#" -gt 0 ] || { log_error "Usage: install_python_packages PACKAGE..."; return 2; }
     local python_cmd
     python_cmd="$(shell_utils_python_command)" || { log_error "Python was not found."; return 2; }
     log_info "Installing Python package(s): $*"
     "$python_cmd" -m pip install "$@"
+}
+
+install_python_packages_strict() {
+    [ "$#" -gt 0 ] || { log_error "Usage: install_python_packages_strict PACKAGE..."; return 2; }
+    local package
+    for package in "$@"; do
+        [ "${package#-}" = "$package" ] || {
+            log_error "Option-like package name refused by strict installation: $package"
+            return 2
+        }
+    done
+    install_python_packages "$@"
 }
 
 apt_package_installed() {
