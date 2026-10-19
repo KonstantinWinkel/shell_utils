@@ -51,8 +51,11 @@ assert_success "log messages sanitize control characters" sanitized_log_message
 assert_success "command detection" shell_utils_command_exists bash
 assert_failure "missing command detection" shell_utils_command_exists shell-utils-command-that-does-not-exist
 assert_success "installed Python package detection" python_package_installed pip
+assert_success "installed Python package satisfying version requirement" python_package_installed "pip>=1"
+assert_failure "installed Python package not satisfying version requirement" python_package_installed "pip>9999"
 assert_failure "missing Python package detection" python_package_installed shell-utils-package-that-does-not-exist
 assert_failure "invalid Python package option" python_package_installed --help
+assert_failure "invalid Python requirement syntax" python_package_installed "pip=>1"
 assert_failure "option-like argument for strict python Package installation" install_python_packages_strict -r requirements.txt
 
 if command -v dpkg-query >/dev/null 2>&1; then

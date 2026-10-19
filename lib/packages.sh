@@ -24,11 +24,52 @@ shell_utils_python_command() {
 }
 
 python_package_installed() {
-    [ "$#" -eq 1 ] || { log_error "Usage: python_package_installed PACKAGE"; return 2; }
-    [ "${1#-}" = "$1" ] || { log_error "Invalid package name: $1"; return 2; }
-    local python_cmd
+    [ "$#" -eq 1 ] || { log_error "Usage: python_package_installed REQUIREMENT"; return 2; }
+    [ "${1#-}" = "$1" ] || { log_error "Invalid Python requirement: $1"; return 2; }
+
+    local requirement="$1" package operator required_version python_cmd installed_version
+
+    if [[ "$requirement" =~ ^([A-Za-z0-9][A-Za-z0-9._-]*)(==|!=|\>=|\<=|\>|\<)([A-Za-z0-9][A-Za-z0-9._+-]*)$ ]]; then
+        package="${BASH_REMATCH[1]}"
+        operator="${BASH_REMATCH[2]}"
+        required_version="${BASH_REMATCH[3]}"
+    elif [[ "$requirement" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+        package="$requirement"
+        operator=""
+        required_version=""
+    else
+        log_error "Invalid or unsupported Python requirement: $requirement"
+        return 2
+    fi
+
     python_cmd="$(shell_utils_python_command)" || { log_error "Python was not found."; return 2; }
-    "$python_cmd" -m pip show -- "$1" >/dev/null 2>&1
+    installed_version="$(
+        "$python_cmd" -m pip show -- "$package" 2>/dev/null |
+            while IFS=: read -r key value; do
+                if [ "$key" = "Version" ]; then
+                    value="${value# }"
+                    printf '%s\n' "$value"
+                    break
+                fi
+            done
+    )"
+    [ -n "$installed_version" ] || return 1
+    [ -n "$operator" ] || return 0
+
+    case "$operator" in
+        '==') [ "$installed_version" = "$required_version" ] ;;
+        '!=') [ "$installed_version" != "$required_version" ] ;;
+        '>=') [ "$(printf '%s\n%s\n' "$required_version" "$installed_version" | sort -V | head -n 1)" = "$required_version" ] ;;
+        '<=') [ "$(printf '%s\n%s\n' "$installed_version" "$required_version" | sort -V | head -n 1)" = "$installed_version" ] ;;
+        '>')
+            [ "$installed_version" != "$required_version" ] &&
+                [ "$(printf '%s\n%s\n' "$required_version" "$installed_version" | sort -V | head -n 1)" = "$required_version" ]
+            ;;
+        '<')
+            [ "$installed_version" != "$required_version" ] &&
+                [ "$(printf '%s\n%s\n' "$installed_version" "$required_version" | sort -V | head -n 1)" = "$installed_version" ]
+            ;;
+    esac
 }
 
 check_python_packages() {
