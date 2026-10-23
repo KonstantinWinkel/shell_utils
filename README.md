@@ -72,17 +72,20 @@ python_package_installed pyside6
 check_python_packages sarif-tools pyside6
 install_python_packages sarif-tools pyside6
 install_python_packages_strict pyside6
+uninstall_python_packages sarif-tools pyside6
 ```
 `python_package_installed` checks whether a single python package is installed \
 `check_python_packages` returns success only when every named package is installed. \
 `install_python_packages` installs all python packages using `{python_interpreter} -m pip`. Arguments are passed directly to `pip`, so requirement files and other options are supported. \
 `install_python_packages_strict` installs all python packages using `{python_interpreter} -m pip`. Only package names with version informations are permitted as arguments. Other options are rejected. \
+`uninstall_python_packages` uninstalls the named packages using `{python_interpreter} -m pip uninstall -y`. Only plain package names are accepted; options, requirement files and version specifiers are rejected. \
 Set `SHELL_UTILS_PYTHON` to select a specific interpreter or virtual environment:
 
 - `python_package_installed PACKAGE` checks whether one package is installed using `python -m pip show`. Option-like package names are rejected.
 - `check_python_packages PACKAGE...` returns success only when every named package is installed.
 - `install_python_packages ARGUMENT...` passes all arguments directly to `python -m pip install`. This supports requirement files and other pip options, but arguments must therefore be trusted.
 - `install_python_packages_strict PACKAGE...` rejects arguments beginning with `-` before delegating to `install_python_packages`. It supports ordinary package names and version specifiers, but it does not validate or require version pinning and must not be treated as a complete validator for untrusted input.
+- `uninstall_python_packages PACKAGE...` accepts plain package names only and removes them non-interactively from the selected Python environment. Options, requirement files and version specifiers are rejected.
 
 Set `SHELL_UTILS_PYTHON` to select a specific interpreter or virtual environment. The path must refer to an executable regular file:
 
@@ -97,6 +100,7 @@ install_python_packages -r requirements.txt
 apt_package_installed git
 check_apt_packages git curl
 install_apt_packages git curl
+uninstall_apt_packages git curl
 ```
 
 - `apt_package_installed PACKAGE` checks one package using `dpkg-query`. Option-like package names are rejected.

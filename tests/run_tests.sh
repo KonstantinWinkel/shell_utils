@@ -57,11 +57,16 @@ assert_failure "missing Python package detection" python_package_installed shell
 assert_failure "invalid Python package option" python_package_installed --help
 assert_failure "invalid Python requirement syntax" python_package_installed "pip=>1"
 assert_failure "option-like argument for strict python Package installation" install_python_packages_strict -r requirements.txt
+assert_failure "missing Python package uninstallation argument" uninstall_python_packages
+assert_failure "option-like Python package uninstallation argument" uninstall_python_packages --help
+assert_failure "Python requirement rejected for uninstallation" uninstall_python_packages "pip>=1"
 
 if command -v dpkg-query >/dev/null 2>&1; then
     assert_success "installed APT package detection" apt_package_installed bash
     assert_failure "missing APT package detection" apt_package_installed shell-utils-package-that-does-not-exist
     assert_failure "invalid APT package option" apt_package_installed --help
+    assert_failure "missing APT package uninstallation argument" uninstall_apt_packages
+    assert_failure "option-like APT package uninstallation argument" uninstall_apt_packages --help
 fi
 
 repo="$(mktemp -d)"

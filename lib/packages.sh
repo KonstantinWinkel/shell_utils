@@ -110,6 +110,24 @@ install_python_packages_strict() {
     install_python_packages "$@"
 }
 
+uninstall_python_packages() {
+    [ "$#" -gt 0 ] || { log_error "Usage: uninstall_python_packages PACKAGE..."; return 2; }
+    local package python_cmd
+    for package in "$@"; do
+        if ! [[ "$package" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            log_error "Invalid Python package name: $package"
+            return 2
+        fi
+    done
+    python_cmd="$(shell_utils_python_command)" || { log_error "Python was not found."; return 2; }
+    log_info "Uninstalling Python package(s): $*"
+    if ! "$python_cmd" -m pip uninstall -y "$@"; then
+        log_error "Failed to uninstall Python package(s): $*"
+        return 1
+    fi
+    log_info "Python package uninstallation complete."
+}
+
 apt_package_installed() {
     [ "$#" -eq 1 ] || { log_error "Usage: apt_package_installed PACKAGE"; return 2; }
     [ "${1#-}" = "$1" ] || { log_error "Invalid package name: $1"; return 2; }
@@ -166,3 +184,33 @@ install_apt_packages() {
 
     log_info "APT package installation complete."
 }
+
+uninstall_apt_packages() {
+    [ "$#" -gt 0 ] || { log_error "Usage: uninstall_apt_packages PACKAGE..."; return 2; }
+    local package privilege
+    for package in "$@"; do
+        [ "${package#-}" = "$package" ] || {
+            log_error "Invalid package name: $package"
+            return 2
+        }
+    done
+    shell_utils_command_exists apt-get || { log_error "apt-get was not found; this system may not be Debian-based."; return 2; }
+    privilege="$(shell_utils_sudo_command)" || {
+        log_error "APT uninstallation requires root privileges or sudo."
+        return 1
+    }
+    log_info "Uninstalling APT package(s): $*"
+    if [ -n "$privilege" ]; then
+        if ! "$privilege" apt-get remove -y -- "$@"; then
+            log_error "Failed to uninstall APT package(s): $*"
+            return 1
+        fi
+    else
+        if ! apt-get remove -y -- "$@"; then
+            log_error "Failed to uninstall APT package(s): $*"
+            return 1
+        fi
+    fi
+    log_info "APT package uninstallation complete."
+}
+
